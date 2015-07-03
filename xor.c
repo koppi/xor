@@ -21,165 +21,209 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void usage(int argc, char **argv) {
-    fprintf(stderr, "to encrypt, run: '%s -e abc.key -i abc.txt -o abc.enc'\n", argv[0]);
-    fprintf(stderr, "to decrypt, run: '%s -d abc.key -i abc.enc -o abc.txt'\n", argv[0]);
-    exit(EXIT_FAILURE);
+void
+usage (int argc, char **argv)
+{
+  fprintf (stderr, "to encrypt, run: '%s -e abc.key -i abc.txt -o abc.enc'\n",
+	   argv[0]);
+  fprintf (stderr, "to decrypt, run: '%s -d abc.key -i abc.enc -o abc.txt'\n",
+	   argv[0]);
+  exit (EXIT_FAILURE);
 }
 
-int main(int argc, char **argv) {
-	FILE *frandom, *fk, *finput, *foutput;
-    int do_encrypt = 0, do_decrypt = 0;
-    char *keyfile, *input, *output;
-    
-	if (argc < 3 || !*argv[1]) {
-        usage(argc, argv);
-	}
+int
+main (int argc, char **argv)
+{
+  FILE *frandom, *fk, *finput, *foutput;
+  int do_encrypt = 0, do_decrypt = 0;
+  char *keyfile, *input, *output;
 
-    int i = 0;
-    while (++i < argc) {
+  if (argc < 3 || !*argv[1])
+    {
+      usage (argc, argv);
+    }
+
+  int i = 0;
+  while (++i < argc)
+    {
 #define OPTION_SET(longopt,shortopt) (strcmp(argv[i], longopt)==0 || strcmp(argv[i], shortopt)==0)
 #define OPTION_VALUE ((i+1 < argc)?(argv[i+1]):(NULL))
 #define OPTION_VALUE_PROCESSED (i++)
-         if (OPTION_SET("--encrypt", "-e")) {
-             do_encrypt = 1;
-             keyfile = argv[++i];
-         } else if (OPTION_SET("--decrypt", "-d")) {
-             do_decrypt = 1;
-             keyfile = argv[++i];
-         } else if (OPTION_SET("--input", "-i")) {
-             input = argv[++i];
-         } else if (OPTION_SET("--output", "-o")) {
-             output = argv[++i];
-         } else {
-             fprintf(stderr, "Unknown option: %s\n", argv[i]);
-             return EXIT_FAILURE;
-         }
+      if (OPTION_SET ("--encrypt", "-e"))
+	{
+	  do_encrypt = 1;
+	  keyfile = argv[++i];
+	}
+      else if (OPTION_SET ("--decrypt", "-d"))
+	{
+	  do_decrypt = 1;
+	  keyfile = argv[++i];
+	}
+      else if (OPTION_SET ("--input", "-i"))
+	{
+	  input = argv[++i];
+	}
+      else if (OPTION_SET ("--output", "-o"))
+	{
+	  output = argv[++i];
+	}
+      else
+	{
+	  fprintf (stderr, "Unknown option: %s\n", argv[i]);
+	  return EXIT_FAILURE;
+	}
     }
 
-    if (input == NULL) {
-        fprintf(stderr, "missing --input option. Exiting.\n");
-        exit(EXIT_FAILURE);
+  if (input == NULL)
+    {
+      fprintf (stderr, "missing --input option. Exiting.\n");
+      exit (EXIT_FAILURE);
     }
 
-    if (output == NULL) {
-        fprintf(stderr, "missing --output option. Exiting.\n");
-        exit(EXIT_FAILURE);
+  if (output == NULL)
+    {
+      fprintf (stderr, "missing --output option. Exiting.\n");
+      exit (EXIT_FAILURE);
     }
 
-    if (do_encrypt) {
-        if (!(frandom = fopen("/dev/random", "rb"))) {
-            perror("fopen(/dev/random)");
-            return EXIT_FAILURE;
-        }
+  if (do_encrypt)
+    {
+      if (!(frandom = fopen ("/dev/random", "rb")))
+	{
+	  perror ("fopen(/dev/random)");
+	  return EXIT_FAILURE;
+	}
 
-        if (!(fk = fopen(keyfile, "wb"))) {
-            perror("fopen(keyfile");
-            return EXIT_FAILURE;
-        }
-        
-        if (!(finput = fopen(input, "rb"))) {
-            fprintf(stderr, "error opening '%s'. Exiting.\n", input);
-            return EXIT_FAILURE;
-        }
+      if (!(fk = fopen (keyfile, "wb")))
+	{
+	  perror ("fopen(keyfile");
+	  return EXIT_FAILURE;
+	}
 
-        if (!(foutput = fopen(output, "rb"))) {
-            fprintf(stderr, "error opening '%s'. Exiting.\n", output);
-            return EXIT_FAILURE;
-        }
+      if (!(finput = fopen (input, "rb")))
+	{
+	  fprintf (stderr, "error opening '%s'. Exiting.\n", input);
+	  return EXIT_FAILURE;
+	}
 
-        for (;;) {
-            char c,k;
-            
-            c = getc(finput);
-            if (feof(finput)) {
-                break;
-            }
-            
-            k = getc(frandom);
-            if (feof(frandom)) {
-                fprintf(stderr, "error: reading from /dev/random. Exiting.\n");
-                return EXIT_FAILURE;
-            }
+      if (!(foutput = fopen (output, "rb")))
+	{
+	  fprintf (stderr, "error opening '%s'. Exiting.\n", output);
+	  return EXIT_FAILURE;
+	}
 
-            fputc(k, fk);
-            
-            c ^= k;
-            fputc(c, foutput);
-        }
+      for (;;)
+	{
+	  char c, k;
 
-        if (fclose(fk)) {
-            fprintf(stderr, "error: closing '%s'. Exiting.\n", keyfile);
-            return EXIT_FAILURE;
-        }
-    
-        if (fclose(frandom)) {
-            fprintf(stderr, "error: closing '/dev/random'. Exiting.\n");
-            return EXIT_FAILURE;
-        }
+	  c = getc (finput);
+	  if (feof (finput))
+	    {
+	      break;
+	    }
 
-        if (fclose(finput)) {
-            fprintf(stderr, "error: closing '%s'. Exiting.\n", finput);
-            return EXIT_FAILURE;
-        }
-    
-        if (fclose(foutput)) {
-            fprintf(stderr, "error: closing '%s'. Exiting.\n", foutput);
-            return EXIT_FAILURE;
-        }
-    } else if (do_decrypt) {
-        if (!(fk = fopen(keyfile, "rb"))) {
-            fprintf(stderr, "error opening '%s'. Exiting.\n", keyfile);
-            return EXIT_FAILURE;
-        }
-        
-        if (!(finput = fopen(input, "rb"))) {
-            fprintf(stderr, "error opening '%s'. Exiting.\n", input);
-            return EXIT_FAILURE;
-        }
+	  k = getc (frandom);
+	  if (feof (frandom))
+	    {
+	      fprintf (stderr, "error: reading from /dev/random. Exiting.\n");
+	      return EXIT_FAILURE;
+	    }
 
-        if (!(foutput = fopen(output, "rb"))) {
-            fprintf(stderr, "error opening '%s'. Exiting.\n", output);
-            return EXIT_FAILURE;
-        }
+	  fputc (k, fk);
 
-        for (;;) {
-            char c,k;
+	  c ^= k;
+	  fputc (c, foutput);
+	}
 
-            c = getc(finput);
-            if (feof(finput)) {
-                break;
-            }
-            
-            k = getc(fk);
-            if (feof(fk)) {
-                fprintf(stderr, "error: reading from '%s'. Exiting.\n", input);
-                return EXIT_FAILURE;
-            }
+      if (fclose (fk))
+	{
+	  fprintf (stderr, "error: closing '%s'. Exiting.\n", keyfile);
+	  return EXIT_FAILURE;
+	}
 
-            fputc(k, fk);
-            
-            c ^= k;
-            fputc(c, foutput);
-        }
+      if (fclose (frandom))
+	{
+	  fprintf (stderr, "error: closing '/dev/random'. Exiting.\n");
+	  return EXIT_FAILURE;
+	}
 
-        if (fclose(fk)) {
-            fprintf(stderr, "error: closing '%s'. Exiting.\n", keyfile);
-            return EXIT_FAILURE;
-        }
-    
-        if (fclose(finput)) {
-            fprintf(stderr, "error: closing '%s'. Exiting.\n", finput);
-            return EXIT_FAILURE;
-        }
-    
-        if (fclose(foutput)) {
-            fprintf(stderr, "error: closing '%s'. Exiting.\n", foutput);
-            return EXIT_FAILURE;
-        }
-    } else {
-        usage(argc, argv);
+      if (fclose (finput))
+	{
+	  fprintf (stderr, "error: closing '%s'. Exiting.\n", input);
+	  return EXIT_FAILURE;
+	}
+
+      if (fclose (foutput))
+	{
+	  fprintf (stderr, "error: closing '%s'. Exiting.\n", output);
+	  return EXIT_FAILURE;
+	}
     }
-    
-	return 0;
+  else if (do_decrypt)
+    {
+      if (!(fk = fopen (keyfile, "rb")))
+	{
+	  fprintf (stderr, "error opening '%s'. Exiting.\n", keyfile);
+	  return EXIT_FAILURE;
+	}
+
+      if (!(finput = fopen (input, "rb")))
+	{
+	  fprintf (stderr, "error opening '%s'. Exiting.\n", input);
+	  return EXIT_FAILURE;
+	}
+
+      if (!(foutput = fopen (output, "rb")))
+	{
+	  fprintf (stderr, "error opening '%s'. Exiting.\n", output);
+	  return EXIT_FAILURE;
+	}
+
+      for (;;)
+	{
+	  char c, k;
+
+	  c = getc (finput);
+	  if (feof (finput))
+	    {
+	      break;
+	    }
+
+	  k = getc (fk);
+	  if (feof (fk))
+	    {
+	      fprintf (stderr, "error: reading from '%s'. Exiting.\n", input);
+	      return EXIT_FAILURE;
+	    }
+
+	  fputc (k, fk);
+
+	  c ^= k;
+	  fputc (c, foutput);
+	}
+
+      if (fclose (fk))
+	{
+	  fprintf (stderr, "error: closing '%s'. Exiting.\n", keyfile);
+	  return EXIT_FAILURE;
+	}
+
+      if (fclose (finput))
+	{
+	  fprintf (stderr, "error: closing '%s'. Exiting.\n", input);
+	  return EXIT_FAILURE;
+	}
+
+      if (fclose (foutput))
+	{
+	  fprintf (stderr, "error: closing '%s'. Exiting.\n", output);
+	  return EXIT_FAILURE;
+	}
+    }
+  else
+    {
+      usage (argc, argv);
+    }
+
+  return 0;
 }
