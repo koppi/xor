@@ -24,9 +24,10 @@
 void
 usage (int argc, char **argv)
 {
-  fprintf (stderr, "to encrypt, run: '%s -e abc.key -i abc.txt -o abc.enc'\n",
+  fprintf (stderr, "usage: %s ...\n", argv[0]);
+  fprintf (stderr, "  to encrypt, run: '%s -e abc.key -i abc.txt -o abc.enc'\n",
 	   argv[0]);
-  fprintf (stderr, "to decrypt, run: '%s -d abc.key -i abc.enc -o abc.txt'\n",
+  fprintf (stderr, "  to decrypt, run: '%s -d abc.key -i abc.enc -o abc.txt'\n",
 	   argv[0]);
   exit (EXIT_FAILURE);
 }
@@ -37,11 +38,6 @@ main (int argc, char **argv)
   FILE *frandom, *fk, *finput, *foutput;
   int do_encrypt = 0, do_decrypt = 0;
   char *keyfile, *input, *output;
-
-  if (argc < 3 || !*argv[1])
-    {
-      usage (argc, argv);
-    }
 
   int i = 0;
   while (++i < argc)
@@ -66,6 +62,10 @@ main (int argc, char **argv)
       else if (OPTION_SET ("--output", "-o"))
 	{
 	  output = argv[++i];
+	}
+      else if (OPTION_SET ("--help", "-h"))
+	{
+        usage(argc, argv);
 	}
       else
 	{
