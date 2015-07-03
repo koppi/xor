@@ -25,9 +25,11 @@ void
 usage (int argc, char **argv)
 {
   fprintf (stderr, "usage: %s ...\n", argv[0]);
-  fprintf (stderr, "  to encrypt, run: '%s -e abc.key -i abc.txt -o abc.enc'\n",
+  fprintf (stderr,
+	   "  to encrypt, run: '%s -e abc.key -i abc.txt -o abc.enc'\n",
 	   argv[0]);
-  fprintf (stderr, "  to decrypt, run: '%s -d abc.key -i abc.enc -o abc.txt'\n",
+  fprintf (stderr,
+	   "  to decrypt, run: '%s -d abc.key -i abc.enc -o abc.txt'\n",
 	   argv[0]);
   exit (EXIT_FAILURE);
 }
@@ -65,7 +67,7 @@ main (int argc, char **argv)
 	}
       else if (OPTION_SET ("--help", "-h"))
 	{
-        usage(argc, argv);
+	  usage (argc, argv);
 	}
       else
 	{
