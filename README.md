@@ -14,3 +14,9 @@ sudo make install
 to encrypt, run: 'xor -e abc.key -i abc.txt -o abc.enc'
 to decrypt, run: 'xor -d abc.key -i abc.enc -o abc.txt'
 ```
+
+### to speed up dev random install haveged
+
+```bash
+sudo apt-get -y install haveged
+```
