@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		if (!(foutput = fopen(output, "rb"))) {
+		if (!(foutput = fopen(output, "wb"))) {
 			fprintf(stderr, "error opening '%s'. Exiting.\n",
 				output);
 			return EXIT_FAILURE;
