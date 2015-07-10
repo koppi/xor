@@ -73,8 +73,8 @@ int main(int argc, char **argv)
 	}
 
 	if (do_encrypt) {
-		if (!(frandom = fopen("/dev/random", "rb"))) {
-			perror("fopen(/dev/random)");
+		if (!(frandom = fopen("/dev/urandom", "rb"))) {
+			perror("fopen(/dev/urandom)");
 			return EXIT_FAILURE;
 		}
 
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 			k = getc(frandom);
 			if (feof(frandom)) {
 				fprintf(stderr,
-					"error: reading from /dev/random. Exiting.\n");
+					"error: reading from /dev/urandom. Exiting.\n");
 				return EXIT_FAILURE;
 			}
 
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
 
 		if (fclose(frandom)) {
 			fprintf(stderr,
-				"error: closing '/dev/random'. Exiting.\n");
+				"error: closing '/dev/urandom'. Exiting.\n");
 			return EXIT_FAILURE;
 		}
 
