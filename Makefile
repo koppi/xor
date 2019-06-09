@@ -1,4 +1,5 @@
-prefix?=/usr/local
+# install prefix either /usr or /usr/local on most unix systems
+PREFIX?=/usr
 
 CFLAGS=-O3
 
@@ -9,7 +10,11 @@ indent:
 
 install: xor
 	strip xor
-	install -m 0755 xor $(prefix)/bin
+	mkdir -p $(INSTALL_PREFIX)$(PREFIX)/bin
+	install -m 0755 xor $(INSTALL_PREFIX)$(PREFIX)/bin
+
+uninstall:
+	rm $(INSTALL_PREFIX)$(PREFIX)/bin/xor
 
 clean:
 	rm -f xor *~
