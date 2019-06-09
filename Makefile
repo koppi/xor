@@ -16,7 +16,10 @@ install: xor
 uninstall:
 	rm $(INSTALL_PREFIX)$(PREFIX)/bin/xor
 
+test:
+	TRAVIS_DEBIAN_DISTRIBUTION=sid; wget -O- http://travis.debian.net/script.sh | sh -
+
 clean:
 	rm -f xor *~
 
-.PHONY: indent install
+.PHONY: indent install uninstall test
