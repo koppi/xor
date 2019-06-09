@@ -1,4 +1,4 @@
-Symmetric xor encryption
+Symmetric xor encryption / decryption
 
 ### compile and install
 
@@ -19,7 +19,9 @@ to decrypt, run: 'xor -d abc.key -i abc.enc -o abc.txt'
 * abc.key is the randomly generated symmetric xor key.
 * abc.enc is the encrypted file.
 
-### to speed up dev random install haveged
+### hints
+
+* to speed up random xor key generation install haveged
 
 ```bash
 sudo apt-get -y install haveged
