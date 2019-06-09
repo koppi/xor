@@ -1,4 +1,4 @@
-Symmetric xor encryption / decryption
+Symmetric xor encryption / decryption [![Build Status](https://travis-ci.com/koppi/xor.svg?branch=master)](https://travis-ci.com/koppi/xor)
 
 ### compile and install
 
