@@ -36,9 +36,9 @@ void usage(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-	FILE *frandom, *fk, *finput, *foutput;
+	FILE *frandom = 0, *fk = 0, *finput = 0, *foutput = 0;
 	int do_encrypt = 0, do_decrypt = 0;
-	char *keyfile, *input, *output;
+	char *keyfile = NULL, *input = NULL, *output = NULL;
 
 	int i = 0;
 	while (++i < argc) {
