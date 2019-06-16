@@ -35,4 +35,4 @@ test:
 clean:
 	rm -f xor *~
 
-.PHONY: indent install uninstall test
+.PHONY: all options clean install uninstall test
