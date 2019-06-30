@@ -3,9 +3,13 @@ Symmetric xor encryption / decryption [![Build Status](https://travis-ci.com/kop
 ### compile and install
 
 ```bash
-git clone https://github.com/koppi/xor
-cd xor
-sudo make install
+git clone https://github.com/koppi/xor && sudo make -C xor install
+```
+
+or
+
+```bash
+curl -L 'https://github.com/koppi/xor/raw/master/xor.c' | gcc -O2 -x c -o /usr/local/bin/xor -
 ```
 
 ### usage
