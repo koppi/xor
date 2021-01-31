@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 		}
 
 		if (!(fk = fopen(keyfile, "wb"))) {
-			perror("fopen(keyfile");
+			perror("fopen(keyfile)");
 			return EXIT_FAILURE;
 		}
 
