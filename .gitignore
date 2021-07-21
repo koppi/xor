@@ -1,0 +1,7 @@
+build-stamp
+debian/.debhelper/
+debian/xor.debhelper.log
+debian/xor.substvars
+debian/xor/
+xor
+xor.o
