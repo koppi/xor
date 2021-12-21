@@ -27,8 +27,13 @@ to decrypt, run: 'xor -d abc.key -i abc.enc -o abc.txt'
 
 ### hints
 
-* to speed up random xor key generation install haveged
+* to speed up random xor key generation install haveged.
 
 ```bash
 sudo apt-get -y install haveged
 ```
+
+### authors
+
+* [@koppi](https://github.com/koppi)
+
