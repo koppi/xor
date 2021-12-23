@@ -2,7 +2,7 @@
 
 [Symmetric XOR encryption / decryption](https://en.wikipedia.org/wiki/XOR_cipher) tool in C.
 
-[![Makefile CI](https://github.com/koppi/xor/actions/workflows/makefile.yml/badge.svg)](https://github.com/koppi/xor/actions/workflows/makefile.yml)
+[![Makefile CI](https://github.com/koppi/xor/actions/workflows/makefile.yml/badge.svg)](https://github.com/koppi/xor/actions/workflows/makefile.yml) [![CodeQL](https://github.com/koppi/xor/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/koppi/xor/actions/workflows/codeql-analysis.yml)
 
 ### compile and install
 
