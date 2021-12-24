@@ -1,10 +1,10 @@
 # XOR cipher
 
-[Symmetric XOR encryption / decryption](https://en.wikipedia.org/wiki/XOR_cipher) tool in C.
+A C implementation of the [simple XOR cipher](https://en.wikipedia.org/wiki/XOR_cipher) for encrypring and decrypting arbitrary files.
 
 [![Makefile CI](https://github.com/koppi/xor/actions/workflows/makefile.yml/badge.svg)](https://github.com/koppi/xor/actions/workflows/makefile.yml)
 
-### compile and install
+## Clone, compile and install
 
 ```bash
 git clone https://github.com/koppi/xor && sudo make -C xor install
@@ -16,7 +16,7 @@ or
 curl -L 'https://github.com/koppi/xor/raw/master/xor.c' | gcc -O2 -x c -o /usr/local/bin/xor -
 ```
 
-### Usage
+## Usage
 
 ```bash
 xor -e abc.key -i abc.txt -o abc.enc # to encrypt
@@ -25,21 +25,21 @@ xor -d abc.key -i abc.enc -o abc.txt # to decrypt
 
 where:
 
-* abc.txt is the plaintext file.
-* abc.key is the randomly generated symmetric XOR key.
-* abc.enc is the encrypted file.
+* ```abc.txt``` is the plaintext file,
+* ```abc.key``` is the single-use pre-shared key,
+* ```abc.enc``` is the encrypted file.
 
-### Hints
+## Hints
 
-* to speed up random XOR key generation on Linux, install haveged:
+* to speed up the key stream generation of the Linux pseudo-random number generator, install ```haveged```:
 
 ```bash
-sudo apt-get -y install haveged
+sudo apt -y install haveged
 ```
 
-* make sure, that the XOR key generation is truely random.
+With a key that is truly random, the result is a one-time pad, which is unbreakable in theory.
 
-### Author
+## Author
 
 * **Jakob Flierl** - [koppi](https://github.com/koppi)
 
