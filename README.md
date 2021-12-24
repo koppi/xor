@@ -2,7 +2,7 @@
 
 A C implementation of the [simple XOR cipher](https://en.wikipedia.org/wiki/XOR_cipher) for encrypring and decrypting arbitrary files.
 
-[![Makefile CI](https://github.com/koppi/xor/actions/workflows/makefile.yml/badge.svg)](https://github.com/koppi/xor/actions/workflows/makefile.yml)
+[![Makefile CI](https://github.com/koppi/xor/actions/workflows/makefile.yml/badge.svg)](https://github.com/koppi/xor/actions/workflows/makefile.yml) [![CodeQL](https://github.com/koppi/xor/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/koppi/xor/actions/workflows/codeql-analysis.yml)
 
 ## Clone, compile and install
 
