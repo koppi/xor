@@ -29,10 +29,7 @@ install: all
 uninstall:
 	rm $(INSTALL_PREFIX)$(PREFIX)/bin/xor
 
-test:
-	TRAVIS_DEBIAN_DISTRIBUTION=sid; wget -O- http://travis.debian.net/script.sh | sh -
-
 clean:
 	rm -f xor *~
 
-.PHONY: all options clean install uninstall test
+.PHONY: all options clean install uninstall
