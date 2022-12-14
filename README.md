@@ -1,6 +1,6 @@
 # XOR cipher
 
-A C implementation of the [simple XOR cipher](https://en.wikipedia.org/wiki/XOR_cipher) for encrypring and decrypting arbitrary files.
+A C implementation of the [simple XOR cipher](https://en.wikipedia.org/wiki/XOR_cipher) for encrypting and decrypting arbitrary files.
 
 [![Makefile CI](https://github.com/koppi/xor/actions/workflows/makefile.yml/badge.svg)](https://github.com/koppi/xor/actions/workflows/makefile.yml) [![CodeQL](https://github.com/koppi/xor/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/koppi/xor/actions/workflows/codeql-analysis.yml) [![Join the chat at https://gitter.im/koppi/xor](https://badges.gitter.im/koppi/xor.svg)](https://gitter.im/koppi/xor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
