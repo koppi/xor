@@ -24,6 +24,7 @@
 
 void usage(int argc, char **argv)
 {
+	(void)argc;
 	fprintf(stderr, "usage: %s ...\n", argv[0]);
 	fprintf(stderr,
 		"  to encrypt, run: '%s -e abc.key -i abc.txt -o abc.enc'\n",
