@@ -1,15 +1,18 @@
 include config.mk
 
+CFLAGS ?= -O1 -g -Wall -Wextra -std=c99 -pedantic -fsanitize=address,undefined
+LDFLAGS ?= -fsanitize=address,undefined
+
+CFLAGS_RELEASE = -O2 -Wall -Wextra -std=c99
+LDFLAGS_RELEASE = -s
+
 SRC = xor.c
 OBJ = ${SRC:.c=.o}
 
-all: options ${TARGET}
+all: ${TARGET}
 
-options:
-	@echo ${TARGET} build options:
-	@echo "CFLAGS   = ${CFLAGS}"
-	@echo "LDFLAGS  = ${LDFLAGS}"
-	@echo "CC       = ${CC}"
+release:
+	$(MAKE) "CFLAGS=$(CFLAGS_RELEASE)" "LDFLAGS=$(LDFLAGS_RELEASE)" $(TARGET)
 
 ${OBJ}: config.mk
 
@@ -18,7 +21,7 @@ ${OBJ}: config.mk
 	@${CC} -c ${CFLAGS} $<
 
 ${TARGET}: ${OBJ}
-	@echo CC -o $@
+	@echo LD $@
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 
 install: all
@@ -30,6 +33,6 @@ uninstall:
 	rm $(INSTALL_PREFIX)$(PREFIX)/bin/xor
 
 clean:
-	rm -f xor *~
+	rm -f xor $(OBJ) *~
 
-.PHONY: all options clean install uninstall
+.PHONY: all install uninstall clean
