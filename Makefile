@@ -35,4 +35,4 @@ uninstall:
 clean:
 	rm -f xor $(OBJ) *~
 
-.PHONY: all install uninstall clean
+.PHONY: all release install uninstall clean
