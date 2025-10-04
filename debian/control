@@ -3,7 +3,7 @@ Section: utils
 Priority: optional
 Maintainer: Jakob Flierl <jakob.flierl@gmail.com>
 Uploaders: Jakob Flierl <jakob.flierl@gmail.com>
-Build-Depends: debhelper (>= 7.0.50~), make, gcc, lsb-release
+Build-Depends: debhelper (>= 10), make, gcc, lsb-release
 Standards-Version: 3.9.7
 Homepage: https://github.com/koppi/xor
 Vcs-Git: git://github.com/koppi/xor.git
@@ -11,7 +11,6 @@ Vcs-Browser: https://github.com/koppi/xor
 
 Package: xor
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Symmetric xor encryption / decryption in C
  Usage
    * to encrypt, run: 'xor -e abc.key -i abc.txt -o abc.enc'
