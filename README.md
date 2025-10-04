@@ -15,7 +15,7 @@ git clone https://github.com/koppi/xor && sudo make -C xor release install
 or
 
 ```bash
-curl -L 'https://github.com/koppi/xor/raw/master/xor.c' | gcc -O2 -x c -o /usr/local/bin/xor -
+curl -L 'https://github.com/koppi/xor/raw/master/xor.c' | gcc -O3 -x c -o /usr/local/bin/xor -
 ```
 
 ## Usage
