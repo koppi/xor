@@ -3,7 +3,7 @@ include config.mk
 CFLAGS ?= -O1 -g -Wall -Wextra -std=c99 -pedantic -fsanitize=address,undefined
 LDFLAGS ?= -fsanitize=address,undefined
 
-CFLAGS_RELEASE = -O2 -Wall -Wextra -std=c99
+CFLAGS_RELEASE = -O3 -Wall -Wextra -Werror -std=c99
 LDFLAGS_RELEASE = -s
 
 SRC = xor.c
