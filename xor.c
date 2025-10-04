@@ -18,9 +18,13 @@
  *
  */
 
-#include <stdlib.h>
+#include <sys/mman.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 void usage(int argc, char **argv)
 {
@@ -37,7 +41,9 @@ void usage(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-	FILE *frandom = 0, *fk = 0, *finput = 0, *foutput = 0;
+	int finput = 0;
+	struct stat sb_input;
+	FILE *frandom = 0, *fk = 0, *foutput = 0;
 	int do_encrypt = 0, do_decrypt = 0;
 	char *keyfile = NULL, *input = NULL, *output = NULL;
 
@@ -85,11 +91,18 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		if (!(finput = fopen(input, "rb"))) {
+		if (!(finput = open(input, O_RDONLY, S_IRUSR))) {
 			fprintf(stderr, "error opening '%s'. Exiting.\n",
 				input);
 			return EXIT_FAILURE;
 		}
+
+		if (fstat(finput, &sb_input) == -1) {
+			fprintf(stderr, "error getting the input file size. Exiting.\n");
+			return EXIT_FAILURE;
+		}
+
+		char *fin = mmap(NULL, sb_input.st_size, PROT_READ, MAP_PRIVATE, finput, 0);
 
 		if (!(foutput = fopen(output, "wb"))) {
 			fprintf(stderr, "error opening '%s'. Exiting.\n",
@@ -97,13 +110,10 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		for (;;) {
+		for (__off_t i = 0; i < sb_input.st_size; ++i) {
 			char c, k;
 
-			c = getc(finput);
-			if (feof(finput)) {
-				break;
-			}
+			c = fin[i];
 
 			k = getc(frandom);
 			if (feof(frandom)) {
@@ -130,7 +140,7 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		if (fclose(finput)) {
+		if (close(finput)) {
 			fprintf(stderr, "error: closing '%s'. Exiting.\n",
 				input);
 			return EXIT_FAILURE;
@@ -148,11 +158,18 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		if (!(finput = fopen(input, "rb"))) {
+		if (!(finput = open(input, O_RDONLY, S_IRUSR))) {
 			fprintf(stderr, "error opening '%s'. Exiting.\n",
 				input);
 			return EXIT_FAILURE;
 		}
+
+		if (fstat(finput, &sb_input) == -1) {
+			fprintf(stderr, "error getting the input file size. Exiting.\n");
+			return EXIT_FAILURE;
+		}
+
+		char *fin = mmap(NULL, sb_input.st_size, PROT_READ, MAP_PRIVATE, finput, 0);
 
 		if (!(foutput = fopen(output, "wb"))) {
 			fprintf(stderr, "error opening '%s'. Exiting.\n",
@@ -160,13 +177,10 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		for (;;) {
+		for (__off_t i = 0; i < sb_input.st_size; ++i) {
 			char c, k;
 
-			c = getc(finput);
-			if (feof(finput)) {
-				break;
-			}
+			c = fin[i];
 
 			k = getc(fk);
 			if (feof(fk)) {
@@ -188,7 +202,7 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		if (fclose(finput)) {
+		if (close(finput)) {
 			fprintf(stderr, "error: closing '%s'. Exiting.\n",
 				input);
 			return EXIT_FAILURE;
