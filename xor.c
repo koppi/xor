@@ -1,6 +1,6 @@
 /*  xor.c - xor encryption / decryption tool
  *
- *  Copyright (C) 2008-2025 Jakob Flierl <jakob.flierl@gmail.com>
+ *  Copyright (C) 2008-2026 Jakob Flierl <jakob.flierl@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public
@@ -41,73 +41,120 @@ void usage(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-	int finput = 0;
+	int finput = -1;
 	struct stat sb_input;
-	FILE *frandom = 0, *fk = 0, *foutput = 0;
+	FILE *frandom = NULL, *fk = NULL, *foutput = NULL;
 	int do_encrypt = 0, do_decrypt = 0;
 	char *keyfile = NULL, *input = NULL, *output = NULL;
+	char *fin = NULL;
+	int ret = EXIT_SUCCESS;
 
-	int i = 0;
-	while (++i < argc) {
+	int i = 1;
+	while (i < argc) {
 #define OPTION_SET(longopt,shortopt) (strcmp(argv[i], longopt)==0 || strcmp(argv[i], shortopt)==0)
-#define OPTION_VALUE ((i+1 < argc)?(argv[i+1]):(NULL))
-#define OPTION_VALUE_PROCESSED (i++)
 		if (OPTION_SET("--encrypt", "-e")) {
+			if (++i >= argc) {
+				fprintf(stderr, "Missing argument for %s\n", argv[i-1]);
+				ret = EXIT_FAILURE;
+				goto cleanup;
+			}
 			do_encrypt = 1;
-			keyfile = argv[++i];
+			keyfile = argv[i];
 		} else if (OPTION_SET("--decrypt", "-d")) {
+			if (++i >= argc) {
+				fprintf(stderr, "Missing argument for %s\n", argv[i-1]);
+				ret = EXIT_FAILURE;
+				goto cleanup;
+			}
 			do_decrypt = 1;
-			keyfile = argv[++i];
+			keyfile = argv[i];
 		} else if (OPTION_SET("--input", "-i")) {
-			input = argv[++i];
+			if (++i >= argc) {
+				fprintf(stderr, "Missing argument for %s\n", argv[i-1]);
+				ret = EXIT_FAILURE;
+				goto cleanup;
+			}
+			input = argv[i];
 		} else if (OPTION_SET("--output", "-o")) {
-			output = argv[++i];
+			if (++i >= argc) {
+				fprintf(stderr, "Missing argument for %s\n", argv[i-1]);
+				ret = EXIT_FAILURE;
+				goto cleanup;
+			}
+			output = argv[i];
 		} else if (OPTION_SET("--help", "-h")) {
 			usage(argc, argv);
 		} else {
 			fprintf(stderr, "Unknown option: %s\n", argv[i]);
-			return EXIT_FAILURE;
+			ret = EXIT_FAILURE;
+			goto cleanup;
 		}
+		i++;
 	}
 
 	if (input == NULL) {
 		fprintf(stderr, "missing --input option. Exiting.\n");
-		exit(EXIT_FAILURE);
+		ret = EXIT_FAILURE;
+		goto cleanup;
 	}
 
 	if (output == NULL) {
 		fprintf(stderr, "missing --output option. Exiting.\n");
-		exit(EXIT_FAILURE);
+		ret = EXIT_FAILURE;
+		goto cleanup;
+	}
+
+	if (do_encrypt == do_decrypt) {
+		fprintf(stderr, "must specify either --encrypt or --decrypt, not both\n");
+		ret = EXIT_FAILURE;
+		goto cleanup;
 	}
 
 	if (do_encrypt) {
 		if (!(frandom = fopen("/dev/urandom", "rb"))) {
 			perror("fopen(/dev/urandom)");
-			return EXIT_FAILURE;
+			ret = EXIT_FAILURE;
+			goto cleanup;
 		}
 
 		if (!(fk = fopen(keyfile, "wb"))) {
 			perror("fopen(keyfile)");
-			return EXIT_FAILURE;
+			ret = EXIT_FAILURE;
+			goto cleanup;
 		}
 
-		if (!(finput = open(input, O_RDONLY, S_IRUSR))) {
-			fprintf(stderr, "error opening '%s'. Exiting.\n",
-				input);
-			return EXIT_FAILURE;
+		if ((finput = open(input, O_RDONLY)) == -1) {
+			fprintf(stderr, "error opening '%s'. Exiting.\n", input);
+			ret = EXIT_FAILURE;
+			goto cleanup;
 		}
 
 		if (fstat(finput, &sb_input) == -1) {
-			fprintf(stderr, "error getting the input file size. Exiting.\n");
-			return EXIT_FAILURE;
+			perror("fstat");
+			ret = EXIT_FAILURE;
+			goto cleanup;
 		}
 
-		char *fin = mmap(NULL, sb_input.st_size, PROT_READ, MAP_PRIVATE, finput, 0);
+		if (sb_input.st_size == 0) {
+			if (!(foutput = fopen(output, "wb"))) {
+				fprintf(stderr, "error opening '%s'. Exiting.\n", output);
+				ret = EXIT_FAILURE;
+				goto cleanup;
+			}
+			goto cleanup;
+		}
+
+		fin = mmap(NULL, sb_input.st_size, PROT_READ, MAP_PRIVATE, finput, 0);
+		if (fin == MAP_FAILED) {
+			perror("mmap");
+			ret = EXIT_FAILURE;
+			goto cleanup;
+		}
 
 		if (!(foutput = fopen(output, "wb"))) {
-			fprintf(stderr, "error opening '%s'. Exiting.\n",
-				output);
-			return EXIT_FAILURE;
+			fprintf(stderr, "error opening '%s'. Exiting.\n", output);
+			ret = EXIT_FAILURE;
+			goto cleanup;
 		}
 
 		for (__off_t i = 0; i < sb_input.st_size; ++i) {
@@ -117,64 +164,63 @@ int main(int argc, char **argv)
 
 			k = getc(frandom);
 			if (feof(frandom)) {
-				fprintf(stderr,
-					"error: reading from /dev/urandom. Exiting.\n");
-				return EXIT_FAILURE;
+				fprintf(stderr, "error: reading from /dev/urandom. Exiting.\n");
+				ret = EXIT_FAILURE;
+				goto cleanup;
 			}
 
-			fputc(k, fk);
+			if (fputc(k, fk) == EOF) {
+				fprintf(stderr, "error: writing to key file. Exiting.\n");
+				ret = EXIT_FAILURE;
+				goto cleanup;
+			}
 
 			c ^= k;
-			fputc(c, foutput);
-		}
-
-		if (fclose(fk)) {
-			fprintf(stderr, "error: closing '%s'. Exiting.\n",
-				keyfile);
-			return EXIT_FAILURE;
-		}
-
-		if (fclose(frandom)) {
-			fprintf(stderr,
-				"error: closing '/dev/urandom'. Exiting.\n");
-			return EXIT_FAILURE;
-		}
-
-		if (close(finput)) {
-			fprintf(stderr, "error: closing '%s'. Exiting.\n",
-				input);
-			return EXIT_FAILURE;
-		}
-
-		if (fclose(foutput)) {
-			fprintf(stderr, "error: closing '%s'. Exiting.\n",
-				output);
-			return EXIT_FAILURE;
+			if (fputc(c, foutput) == EOF) {
+				fprintf(stderr, "error: writing to output file. Exiting.\n");
+				ret = EXIT_FAILURE;
+				goto cleanup;
+			}
 		}
 	} else if (do_decrypt) {
 		if (!(fk = fopen(keyfile, "rb"))) {
-			fprintf(stderr, "error opening '%s'. Exiting.\n",
-				keyfile);
-			return EXIT_FAILURE;
+			fprintf(stderr, "error opening '%s'. Exiting.\n", keyfile);
+			ret = EXIT_FAILURE;
+			goto cleanup;
 		}
 
-		if (!(finput = open(input, O_RDONLY, S_IRUSR))) {
-			fprintf(stderr, "error opening '%s'. Exiting.\n",
-				input);
-			return EXIT_FAILURE;
+		if ((finput = open(input, O_RDONLY)) == -1) {
+			fprintf(stderr, "error opening '%s'. Exiting.\n", input);
+			ret = EXIT_FAILURE;
+			goto cleanup;
 		}
 
 		if (fstat(finput, &sb_input) == -1) {
-			fprintf(stderr, "error getting the input file size. Exiting.\n");
-			return EXIT_FAILURE;
+			perror("fstat");
+			ret = EXIT_FAILURE;
+			goto cleanup;
 		}
 
-		char *fin = mmap(NULL, sb_input.st_size, PROT_READ, MAP_PRIVATE, finput, 0);
+		if (sb_input.st_size == 0) {
+			if (!(foutput = fopen(output, "wb"))) {
+				fprintf(stderr, "error opening '%s'. Exiting.\n", output);
+				ret = EXIT_FAILURE;
+				goto cleanup;
+			}
+			goto cleanup;
+		}
+
+		fin = mmap(NULL, sb_input.st_size, PROT_READ, MAP_PRIVATE, finput, 0);
+		if (fin == MAP_FAILED) {
+			perror("mmap");
+			ret = EXIT_FAILURE;
+			goto cleanup;
+		}
 
 		if (!(foutput = fopen(output, "wb"))) {
-			fprintf(stderr, "error opening '%s'. Exiting.\n",
-				output);
-			return EXIT_FAILURE;
+			fprintf(stderr, "error opening '%s'. Exiting.\n", output);
+			ret = EXIT_FAILURE;
+			goto cleanup;
 		}
 
 		for (__off_t i = 0; i < sb_input.st_size; ++i) {
@@ -184,38 +230,38 @@ int main(int argc, char **argv)
 
 			k = getc(fk);
 			if (feof(fk)) {
-				fprintf(stderr,
-					"error: reading from '%s'. Exiting.\n",
-					input);
-				return EXIT_FAILURE;
+				fprintf(stderr, "error: reading from '%s'. Exiting.\n", keyfile);
+				ret = EXIT_FAILURE;
+				goto cleanup;
 			}
 
-			fputc(k, fk);
-
 			c ^= k;
-			fputc(c, foutput);
-		}
-
-		if (fclose(fk)) {
-			fprintf(stderr, "error: closing '%s'. Exiting.\n",
-				keyfile);
-			return EXIT_FAILURE;
-		}
-
-		if (close(finput)) {
-			fprintf(stderr, "error: closing '%s'. Exiting.\n",
-				input);
-			return EXIT_FAILURE;
-		}
-
-		if (fclose(foutput)) {
-			fprintf(stderr, "error: closing '%s'. Exiting.\n",
-				output);
-			return EXIT_FAILURE;
+			if (fputc(c, foutput) == EOF) {
+				fprintf(stderr, "error: writing to output file. Exiting.\n");
+				ret = EXIT_FAILURE;
+				goto cleanup;
+			}
 		}
 	} else {
 		usage(argc, argv);
 	}
 
-	return 0;
+cleanup:
+	if (fin && fin != MAP_FAILED) {
+		munmap(fin, sb_input.st_size);
+	}
+	if (finput != -1) {
+		close(finput);
+	}
+	if (frandom) {
+		fclose(frandom);
+	}
+	if (fk) {
+		fclose(fk);
+	}
+	if (foutput) {
+		fclose(foutput);
+	}
+
+	return ret;
 }

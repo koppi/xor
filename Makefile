@@ -25,7 +25,6 @@ ${TARGET}: ${OBJ}
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 
 install: all
-	strip xor
 	mkdir -p $(INSTALL_PREFIX)$(PREFIX)/bin
 	install -m 0755 xor $(INSTALL_PREFIX)$(PREFIX)/bin
 

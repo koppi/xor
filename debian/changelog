@@ -1,6 +1,7 @@
-xor (0.0.2) UNRELEASED; urgency=medium
+xor (0.0.2) unstable; urgency=medium
 
   * Bump version 0.0.2.
+  * Fix security vulnerabilities and resource leaks.
 
  -- Jakob Flierl <jakob.flierl@gmail.com>  Sat, 04 Oct 2025 21:16:12 +0200
 
