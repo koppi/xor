@@ -29,9 +29,9 @@ where:
 * ```abc.key``` is the single-use pre-shared key,
 * ```abc.enc``` is the encrypted file.
 
-## Hints
+## Hint
 
-* to speed up the key stream generation of the Linux pseudo-random number generator, install ```haveged```:
+To speed up the key stream generation of the Linux pseudo-random number generator, install ```haveged```:
 
 ```bash
 sudo apt -y install haveged
