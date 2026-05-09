@@ -32,7 +32,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#include <bcrypt.h>
+#define RtlGenRandom SystemFunction036
 #else
 #include <fcntl.h>
 #include <unistd.h>
@@ -54,16 +54,20 @@ void usage(int argc, char **argv)
 }
 
 #ifdef _WIN32
+#include <windows.h>
+#define RtlGenRandom SystemFunction036
+BOOLEAN NTAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength);
+
 static int win32_random_buf(void *buf, size_t len)
 {
-	BCRYPT_ALG_HANDLE hAlg;
-	if (BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_RNG_ALGORITHM, NULL, 0) != 0)
-		return -1;
-	if (BCryptGenRandom(hAlg, (PUCHAR)buf, (ULONG)len, 0) != 0) {
-		BCryptCloseAlgorithmProvider(hAlg, 0);
-		return -1;
+	size_t done = 0;
+	unsigned char *p = (unsigned char *)buf;
+	while (done < len) {
+		ULONG chunk = (len - done > 0x7FFFFFFFUL) ? 0x7FFFFFFFUL : (ULONG)(len - done);
+		if (!RtlGenRandom(p + done, chunk))
+			return -1;
+		done += chunk;
 	}
-	BCryptCloseAlgorithmProvider(hAlg, 0);
 	return 0;
 }
 #endif

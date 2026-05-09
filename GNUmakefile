@@ -3,16 +3,16 @@ include config.mk
 CFLAGS ?= -O1 -g -Wall -Wextra -std=c99 -pedantic
 
 ifeq ($(WINDOWS),1)
-LDLIBS = -lbcrypt
+LDLIBS = -ladvapi32
 else
 ifneq (,$(findstring mingw,$(CC)))
-LDLIBS = -lbcrypt
+LDLIBS = -ladvapi32
 else
 ifdef SystemRoot
-LDLIBS = -lbcrypt
+LDLIBS = -ladvapi32
 else
 ifeq ($(OS),Windows_NT)
-LDLIBS = -lbcrypt
+LDLIBS = -ladvapi32
 else
 LDLIBS =
 endif
