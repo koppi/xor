@@ -1,9 +1,17 @@
 xor (0.0.2) unstable; urgency=medium
 
-  * Bump version 0.0.2.
-  * Fix security vulnerabilities and resource leaks.
+  * Cross-platform Windows portability:
+    - Replace POSIX mmap() with malloc() + fread()
+    - Use Windows BCryptGenRandom CNG API instead of /dev/urandom
+    - Link with bcrypt library on Windows
+    - Renamed Makefile to GNUmakefile for Windows MSYS2 compatibility
+  * Large file (>4GB) support:
+    - Stream files in 1MB chunks instead of loading entire file into memory
+    - Enable _FILE_OFFSET_BITS=64 for proper 64-bit off_t
+  * Removed address/undefined sanitizers from default CFLAGS (not available in MinGW)
+  * Removed CI badges from README
 
- -- Jakob Flierl <jakob.flierl@gmail.com>  Sat, 04 Oct 2025 21:16:12 +0200
+ -- Jakob Flierl <jakob.flierl@gmail.com>  Sat, 09 May 2026 04:27:00 +0200
 
 xor (0.0.1+nmu1) UNRELEASED; urgency=medium
 
