@@ -40,16 +40,38 @@
 
 #define CHUNK_SIZE (1024 * 1024)
 
-void usage(int argc, char **argv)
+void usage(void)
 {
-	(void)argc;
-	fprintf(stderr, "usage: %s ...\n", argv[0]);
 	fprintf(stderr,
-		"  to encrypt, run: '%s -e abc.key -i abc.txt -o abc.enc'\n",
-		argv[0]);
+		"xor - XOR encryption/decryption tool\n"
+		"\n"
+		"Usage:\n"
+		"  xor -e <keyfile> -i <input> -o <output>  # encrypt\n"
+		"  xor -d <keyfile> -i <input> -o <output>  # decrypt\n"
+		"  xor -h | --help                            # show this help\n"
+		"\n"
+		"Options:\n"
+		"  -e, --encrypt <keyfile>  Encrypt mode; generate keyfile\n"
+		"  -d, --decrypt <keyfile>  Decrypt mode; use existing keyfile\n"
+		"  -i, --input <file>       Input file\n"
+		"  -o, --output <file>      Output file\n"
+		"  -h, --help               Show this help message\n"
+		"\n"
+		"Examples:\n"
+		"  xor -e my.key -i secret.txt -o secret.enc  # encrypt\n"
+		"  xor -d my.key -i secret.enc -o secret.txt  # decrypt\n"
+	);
+	exit(EXIT_SUCCESS);
+}
+
+static void usage_error(void)
+{
 	fprintf(stderr,
-		"  to decrypt, run: '%s -d abc.key -i abc.enc -o abc.txt'\n",
-		argv[0]);
+		"Usage: xor -e|-d <keyfile> -i <input> -o <output>\n"
+		"       xor -h | --help\n"
+		"\n"
+		"Use -h or --help for detailed help.\n"
+	);
 	exit(EXIT_FAILURE);
 }
 
@@ -119,31 +141,20 @@ int main(int argc, char **argv)
 			}
 			output = argv[i];
 		} else if (OPTION_SET("--help", "-h")) {
-			usage(argc, argv);
+			usage();
 		} else {
 			fprintf(stderr, "Unknown option: %s\n", argv[i]);
-			ret = EXIT_FAILURE;
-			goto cleanup;
+			usage_error();
 		}
 		i++;
 	}
 
-	if (input == NULL) {
-		fprintf(stderr, "missing --input option. Exiting.\n");
-		ret = EXIT_FAILURE;
-		goto cleanup;
+	if (argc == 1) {
+		usage_error();
 	}
 
-	if (output == NULL) {
-		fprintf(stderr, "missing --output option. Exiting.\n");
-		ret = EXIT_FAILURE;
-		goto cleanup;
-	}
-
-	if (do_encrypt == do_decrypt) {
-		fprintf(stderr, "must specify either --encrypt or --decrypt, not both\n");
-		ret = EXIT_FAILURE;
-		goto cleanup;
+	if (input == NULL || output == NULL || do_encrypt == do_decrypt) {
+		usage_error();
 	}
 
 	if (stat(input, &sb_input) == -1) {
@@ -280,10 +291,10 @@ int main(int argc, char **argv)
 			}
 
 			remaining -= n;
-		}
-	} else {
-		usage(argc, argv);
 	}
+} else {
+	usage_error();
+}
 
 cleanup:
 	if (buf) {
