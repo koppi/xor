@@ -1,29 +1,3 @@
-/*  xor.c - xor encryption / decryption tool
- *
- *  Copyright (C) 2008-2026 Jakob Flierl <jakob.flierl@gmail.com>
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- */
-
-#ifndef _FILE_OFFSET_BITS
-#define _FILE_OFFSET_BITS 64
-#endif
-#ifndef _LARGEFILE64_SOURCE
-#define _LARGEFILE64_SOURCE
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,7 +6,20 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#define RtlGenRandom SystemFunction036
+#include <wincrypt.h>
+
+static int win32_random_buf(void *buf, size_t len)
+{
+	HCRYPTPROV hProv;
+	if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+		return -1;
+	if (!CryptGenRandom(hProv, (DWORD)len, (BYTE*)buf)) {
+		CryptReleaseContext(hProv, 0);
+		return -1;
+	}
+	CryptReleaseContext(hProv, 0);
+	return 0;
+}
 #else
 #include <fcntl.h>
 #include <unistd.h>
@@ -75,25 +62,6 @@ static void usage_error(void)
 	exit(EXIT_FAILURE);
 }
 
-#ifdef _WIN32
-#include <windows.h>
-#define RtlGenRandom SystemFunction036
-BOOLEAN NTAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength);
-
-static int win32_random_buf(void *buf, size_t len)
-{
-	size_t done = 0;
-	unsigned char *p = (unsigned char *)buf;
-	while (done < len) {
-		ULONG chunk = (len - done > 0x7FFFFFFFUL) ? 0x7FFFFFFFUL : (ULONG)(len - done);
-		if (!RtlGenRandom(p + done, chunk))
-			return -1;
-		done += chunk;
-	}
-	return 0;
-}
-#endif
-
 int main(int argc, char **argv)
 {
 	struct stat sb_input;
@@ -108,36 +76,34 @@ int main(int argc, char **argv)
 	size_t randbuf_used = CHUNK_SIZE;
 #endif
 	int i = 1;
-	while (i < argc) {
+
 #define OPTION_SET(longopt,shortopt) (strcmp(argv[i], longopt)==0 || strcmp(argv[i], shortopt)==0)
+
+	while (i < argc) {
 		if (OPTION_SET("--encrypt", "-e")) {
 			if (++i >= argc) {
 				fprintf(stderr, "Missing argument for %s\n", argv[i-1]);
-				ret = EXIT_FAILURE;
-				goto cleanup;
+				usage_error();
 			}
 			do_encrypt = 1;
 			keyfile = argv[i];
 		} else if (OPTION_SET("--decrypt", "-d")) {
 			if (++i >= argc) {
 				fprintf(stderr, "Missing argument for %s\n", argv[i-1]);
-				ret = EXIT_FAILURE;
-				goto cleanup;
+				usage_error();
 			}
 			do_decrypt = 1;
 			keyfile = argv[i];
 		} else if (OPTION_SET("--input", "-i")) {
 			if (++i >= argc) {
 				fprintf(stderr, "Missing argument for %s\n", argv[i-1]);
-				ret = EXIT_FAILURE;
-				goto cleanup;
+				usage_error();
 			}
 			input = argv[i];
 		} else if (OPTION_SET("--output", "-o")) {
 			if (++i >= argc) {
 				fprintf(stderr, "Missing argument for %s\n", argv[i-1]);
-				ret = EXIT_FAILURE;
-				goto cleanup;
+				usage_error();
 			}
 			output = argv[i];
 		} else if (OPTION_SET("--help", "-h")) {
@@ -164,7 +130,7 @@ int main(int argc, char **argv)
 	}
 	file_size = (uint64_t)sb_input.st_size;
 
-	buf = malloc(CHUNK_SIZE);
+	buf = (unsigned char *)malloc(CHUNK_SIZE);
 	if (buf == NULL) {
 		perror("malloc");
 		ret = EXIT_FAILURE;
@@ -291,10 +257,10 @@ int main(int argc, char **argv)
 			}
 
 			remaining -= n;
+		}
+	} else {
+		usage_error();
 	}
-} else {
-	usage_error();
-}
 
 cleanup:
 	if (buf) {
