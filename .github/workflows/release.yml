@@ -153,7 +153,6 @@ jobs:
           CC="${{ matrix.triplet }}-gcc"
           make clean
           make CC="$CC" WINDOWS=1 release
-          mv xor xor.exe
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v6
