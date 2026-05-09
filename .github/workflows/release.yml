@@ -130,9 +130,40 @@ jobs:
           path: deb-output/
           if-no-files-found: ignore
 
+  windows:
+    name: Build Windows ${{ matrix.arch }} binary
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            triplet: x86_64-w64-mingw32
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install MinGW-w64 cross-compiler
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc-mingw-w64-x86-64
+
+      - name: Build Windows binary
+        run: |
+          CC="${{ matrix.triplet }}-gcc"
+          make clean
+          make CC="$CC" WINDOWS=1 release
+          mv xor xor.exe
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-${{ matrix.arch }}
+          path: xor.exe
+
   release:
     name: Create GitHub Release
-    needs: build
+    needs: [build, windows]
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
@@ -143,9 +174,10 @@ jobs:
       - name: Flatten artifact directories
         run: |
           mkdir -p release-packages
-          find artifacts -type f \( -name "*.deb" -o -name "*.ddeb" -o -name "*.dsc" \) | while read -r file; do
+          find artifacts -type f \( -name "*.deb" -o -name "*.ddeb" -o -name "*.dsc" -o -name "*.exe" \) | while read -r file; do
             cp "$file" release-packages/
           done
+          ls -la release-packages/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
