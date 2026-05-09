@@ -48,6 +48,7 @@ void usage(void)
 		"  xor -e my.key -i secret.txt -o secret.enc  # encrypt\n"
 		"  xor -d my.key -i secret.enc -o secret.txt  # decrypt\n"
 	);
+	fflush(stderr);
 	exit(EXIT_SUCCESS);
 }
 
@@ -59,6 +60,7 @@ static void usage_error(void)
 		"\n"
 		"Use -h or --help for detailed help.\n"
 	);
+	fflush(stderr);
 	exit(EXIT_FAILURE);
 }
 
@@ -71,9 +73,10 @@ int main(int argc, char **argv)
 	int ret = EXIT_SUCCESS;
 	uint64_t file_size;
 	unsigned char *buf = NULL;
+	unsigned char *keybuf = NULL;
 #ifdef _WIN32
-	unsigned char randbuf[CHUNK_SIZE];
-	size_t randbuf_used = CHUNK_SIZE;
+	unsigned char *randbuf = NULL;
+	size_t randbuf_used = 0;
 #endif
 	int i = 1;
 
@@ -137,6 +140,23 @@ int main(int argc, char **argv)
 		goto cleanup;
 	}
 
+	keybuf = (unsigned char *)malloc(CHUNK_SIZE);
+	if (keybuf == NULL) {
+		perror("malloc");
+		ret = EXIT_FAILURE;
+		goto cleanup;
+	}
+
+#ifdef _WIN32
+	randbuf = (unsigned char *)malloc(CHUNK_SIZE);
+	if (randbuf == NULL) {
+		perror("malloc");
+		ret = EXIT_FAILURE;
+		goto cleanup;
+	}
+	randbuf_used = CHUNK_SIZE;
+#endif
+
 	if (do_encrypt) {
 #ifndef _WIN32
 		if (!(frandom = fopen("/dev/urandom", "rb"))) {
@@ -174,10 +194,9 @@ int main(int argc, char **argv)
 				goto cleanup;
 			}
 
-			unsigned char keybuf[CHUNK_SIZE];
 #ifdef _WIN32
-			if (randbuf_used + n > sizeof(randbuf)) {
-				if (win32_random_buf(randbuf, sizeof(randbuf)) != 0) {
+			if (randbuf_used + n > CHUNK_SIZE) {
+				if (win32_random_buf(randbuf, CHUNK_SIZE) != 0) {
 					fprintf(stderr, "error: getting random bytes. Exiting.\n");
 					ret = EXIT_FAILURE;
 					goto cleanup;
@@ -240,7 +259,6 @@ int main(int argc, char **argv)
 				goto cleanup;
 			}
 
-			unsigned char keybuf[CHUNK_SIZE];
 			if (fread(keybuf, 1, n, fkey) != n) {
 				fprintf(stderr, "error: reading from key file '%s'. Exiting.\n", keyfile);
 				ret = EXIT_FAILURE;
@@ -263,6 +281,14 @@ int main(int argc, char **argv)
 	}
 
 cleanup:
+#ifdef _WIN32
+	if (randbuf) {
+		free(randbuf);
+	}
+#endif
+	if (keybuf) {
+		free(keybuf);
+	}
 	if (buf) {
 		free(buf);
 	}
