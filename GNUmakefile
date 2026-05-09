@@ -1,10 +1,21 @@
 include config.mk
 
-CFLAGS ?= -O1 -g -Wall -Wextra -std=c99 -pedantic -fsanitize=address,undefined
-LDFLAGS ?= -fsanitize=address,undefined
+CFLAGS ?= -O1 -g -Wall -Wextra -std=c99 -pedantic
+
+ifdef SystemRoot
+LDLIBS = -lbcrypt
+else
+ifeq ($(OS),Windows_NT)
+LDLIBS = -lbcrypt
+else
+LDLIBS =
+endif
+endif
+
+LDFLAGS ?= $(LDLIBS)
 
 CFLAGS_RELEASE = -O3 -Wall -Wextra -Werror -std=c99
-LDFLAGS_RELEASE = -s
+LDFLAGS_RELEASE = -s $(LDLIBS)
 
 SRC = xor.c
 OBJ = ${SRC:.c=.o}

@@ -17,13 +17,28 @@
  *
  */
 
-#include <sys/mman.h>
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 64
+#endif
+#ifndef _LARGEFILE64_SOURCE
+#define _LARGEFILE64_SOURCE
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <sys/stat.h>
-#include <unistd.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <bcrypt.h>
+#else
 #include <fcntl.h>
+#include <unistd.h>
+#endif
+
+#define CHUNK_SIZE (1024 * 1024)
 
 void usage(int argc, char **argv)
 {
@@ -38,16 +53,34 @@ void usage(int argc, char **argv)
 	exit(EXIT_FAILURE);
 }
 
+#ifdef _WIN32
+static int win32_random_buf(void *buf, size_t len)
+{
+	BCRYPT_ALG_HANDLE hAlg;
+	if (BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_RNG_ALGORITHM, NULL, 0) != 0)
+		return -1;
+	if (BCryptGenRandom(hAlg, (PUCHAR)buf, (ULONG)len, 0) != 0) {
+		BCryptCloseAlgorithmProvider(hAlg, 0);
+		return -1;
+	}
+	BCryptCloseAlgorithmProvider(hAlg, 0);
+	return 0;
+}
+#endif
+
 int main(int argc, char **argv)
 {
-	int finput = -1;
 	struct stat sb_input;
-	FILE *frandom = NULL, *fk = NULL, *foutput = NULL;
+	FILE *finput = NULL, *frandom = NULL, *fkey = NULL, *foutput = NULL;
 	int do_encrypt = 0, do_decrypt = 0;
 	char *keyfile = NULL, *input = NULL, *output = NULL;
-	char *fin = NULL;
 	int ret = EXIT_SUCCESS;
-
+	uint64_t file_size;
+	unsigned char *buf = NULL;
+#ifdef _WIN32
+	unsigned char randbuf[CHUNK_SIZE];
+	size_t randbuf_used = CHUNK_SIZE;
+#endif
 	int i = 1;
 	while (i < argc) {
 #define OPTION_SET(longopt,shortopt) (strcmp(argv[i], longopt)==0 || strcmp(argv[i], shortopt)==0)
@@ -109,43 +142,37 @@ int main(int argc, char **argv)
 		goto cleanup;
 	}
 
+	if (stat(input, &sb_input) == -1) {
+		fprintf(stderr, "error: cannot stat '%s'. Exiting.\n", input);
+		ret = EXIT_FAILURE;
+		goto cleanup;
+	}
+	file_size = (uint64_t)sb_input.st_size;
+
+	buf = malloc(CHUNK_SIZE);
+	if (buf == NULL) {
+		perror("malloc");
+		ret = EXIT_FAILURE;
+		goto cleanup;
+	}
+
 	if (do_encrypt) {
+#ifndef _WIN32
 		if (!(frandom = fopen("/dev/urandom", "rb"))) {
 			perror("fopen(/dev/urandom)");
 			ret = EXIT_FAILURE;
 			goto cleanup;
 		}
+#endif
 
-		if (!(fk = fopen(keyfile, "wb"))) {
+		if (!(fkey = fopen(keyfile, "wb"))) {
 			perror("fopen(keyfile)");
 			ret = EXIT_FAILURE;
 			goto cleanup;
 		}
 
-		if ((finput = open(input, O_RDONLY)) == -1) {
+		if (!(finput = fopen(input, "rb"))) {
 			fprintf(stderr, "error opening '%s'. Exiting.\n", input);
-			ret = EXIT_FAILURE;
-			goto cleanup;
-		}
-
-		if (fstat(finput, &sb_input) == -1) {
-			perror("fstat");
-			ret = EXIT_FAILURE;
-			goto cleanup;
-		}
-
-		if (sb_input.st_size == 0) {
-			if (!(foutput = fopen(output, "wb"))) {
-				fprintf(stderr, "error opening '%s'. Exiting.\n", output);
-				ret = EXIT_FAILURE;
-				goto cleanup;
-			}
-			goto cleanup;
-		}
-
-		fin = mmap(NULL, sb_input.st_size, PROT_READ, MAP_PRIVATE, finput, 0);
-		if (fin == MAP_FAILED) {
-			perror("mmap");
 			ret = EXIT_FAILURE;
 			goto cleanup;
 		}
@@ -156,62 +183,62 @@ int main(int argc, char **argv)
 			goto cleanup;
 		}
 
-		for (__off_t i = 0; i < sb_input.st_size; ++i) {
-			char c, k;
-
-			c = fin[i];
-
-			k = getc(frandom);
-			if (feof(frandom)) {
-				fprintf(stderr, "error: reading from /dev/urandom. Exiting.\n");
+		uint64_t remaining = file_size;
+		while (remaining > 0) {
+			size_t to_read = (remaining > CHUNK_SIZE) ? CHUNK_SIZE : (size_t)remaining;
+			size_t n = fread(buf, 1, to_read, finput);
+			if (n == 0) {
+				fprintf(stderr, "error reading from input file\n");
 				ret = EXIT_FAILURE;
 				goto cleanup;
 			}
 
-			if (fputc(k, fk) == EOF) {
+			unsigned char keybuf[CHUNK_SIZE];
+#ifdef _WIN32
+			if (randbuf_used + n > sizeof(randbuf)) {
+				if (win32_random_buf(randbuf, sizeof(randbuf)) != 0) {
+					fprintf(stderr, "error: getting random bytes. Exiting.\n");
+					ret = EXIT_FAILURE;
+					goto cleanup;
+				}
+				randbuf_used = 0;
+			}
+			memcpy(keybuf, randbuf + randbuf_used, n);
+			randbuf_used += n;
+#else
+			if (fread(keybuf, 1, n, frandom) != n) {
+				fprintf(stderr, "error: reading from /dev/urandom. Exiting.\n");
+				ret = EXIT_FAILURE;
+				goto cleanup;
+			}
+#endif
+
+			if (fwrite(keybuf, 1, n, fkey) != n) {
 				fprintf(stderr, "error: writing to key file. Exiting.\n");
 				ret = EXIT_FAILURE;
 				goto cleanup;
 			}
 
-			c ^= k;
-			if (fputc(c, foutput) == EOF) {
+			for (size_t j = 0; j < n; j++)
+				buf[j] ^= keybuf[j];
+
+			if (fwrite(buf, 1, n, foutput) != n) {
 				fprintf(stderr, "error: writing to output file. Exiting.\n");
 				ret = EXIT_FAILURE;
 				goto cleanup;
 			}
+
+			remaining -= n;
 		}
 	} else if (do_decrypt) {
-		if (!(fk = fopen(keyfile, "rb"))) {
+		if (!(fkey = fopen(keyfile, "rb"))) {
 			fprintf(stderr, "error opening '%s'. Exiting.\n", keyfile);
 			ret = EXIT_FAILURE;
 			goto cleanup;
 		}
 
-		if ((finput = open(input, O_RDONLY)) == -1) {
+		if (!(finput = fopen(input, "rb"))) {
 			fprintf(stderr, "error opening '%s'. Exiting.\n", input);
-			ret = EXIT_FAILURE;
-			goto cleanup;
-		}
-
-		if (fstat(finput, &sb_input) == -1) {
-			perror("fstat");
-			ret = EXIT_FAILURE;
-			goto cleanup;
-		}
-
-		if (sb_input.st_size == 0) {
-			if (!(foutput = fopen(output, "wb"))) {
-				fprintf(stderr, "error opening '%s'. Exiting.\n", output);
-				ret = EXIT_FAILURE;
-				goto cleanup;
-			}
-			goto cleanup;
-		}
-
-		fin = mmap(NULL, sb_input.st_size, PROT_READ, MAP_PRIVATE, finput, 0);
-		if (fin == MAP_FAILED) {
-			perror("mmap");
 			ret = EXIT_FAILURE;
 			goto cleanup;
 		}
@@ -222,41 +249,50 @@ int main(int argc, char **argv)
 			goto cleanup;
 		}
 
-		for (__off_t i = 0; i < sb_input.st_size; ++i) {
-			char c, k;
-
-			c = fin[i];
-
-			k = getc(fk);
-			if (feof(fk)) {
-				fprintf(stderr, "error: reading from '%s'. Exiting.\n", keyfile);
+		uint64_t remaining = file_size;
+		while (remaining > 0) {
+			size_t to_read = (remaining > CHUNK_SIZE) ? CHUNK_SIZE : (size_t)remaining;
+			size_t n = fread(buf, 1, to_read, finput);
+			if (n == 0) {
+				fprintf(stderr, "error reading from input file\n");
 				ret = EXIT_FAILURE;
 				goto cleanup;
 			}
 
-			c ^= k;
-			if (fputc(c, foutput) == EOF) {
+			unsigned char keybuf[CHUNK_SIZE];
+			if (fread(keybuf, 1, n, fkey) != n) {
+				fprintf(stderr, "error: reading from key file '%s'. Exiting.\n", keyfile);
+				ret = EXIT_FAILURE;
+				goto cleanup;
+			}
+
+			for (size_t j = 0; j < n; j++)
+				buf[j] ^= keybuf[j];
+
+			if (fwrite(buf, 1, n, foutput) != n) {
 				fprintf(stderr, "error: writing to output file. Exiting.\n");
 				ret = EXIT_FAILURE;
 				goto cleanup;
 			}
+
+			remaining -= n;
 		}
 	} else {
 		usage(argc, argv);
 	}
 
 cleanup:
-	if (fin && fin != MAP_FAILED) {
-		munmap(fin, sb_input.st_size);
+	if (buf) {
+		free(buf);
 	}
-	if (finput != -1) {
-		close(finput);
+	if (finput) {
+		fclose(finput);
 	}
 	if (frandom) {
 		fclose(frandom);
 	}
-	if (fk) {
-		fclose(fk);
+	if (fkey) {
+		fclose(fkey);
 	}
 	if (foutput) {
 		fclose(foutput);
