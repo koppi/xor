@@ -6,8 +6,6 @@ A C implementation of the [simple XOR cipher](https://en.wikipedia.org/wiki/XOR_
 git clone https://github.com/koppi/xor && sudo make -C xor release install
 ```
 
-(Note: using simply `make` instead of `make release` will produce debug versions of the tools with the address sanitizer and undefined behavior sanitizer enabled.)
-
 or
 
 ```bash
